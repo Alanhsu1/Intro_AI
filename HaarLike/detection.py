@@ -29,7 +29,7 @@ def detect(dataPath, clf):
             x, y, wid, hei = list(map(int, f.readline().split()))
             crop = gray[y:y+hei, x:x+wid]
 
-            rsz = cv2.resize(crop, (19, 19), interpolation=cv2.INTER_NEAREST)
+            rsz = cv2.resize(crop, (224, 224), interpolation=cv2.INTER_NEAREST)
 
             if clf.classify(rsz)==1: #green
                 cv2.rectangle(img, (x,y), (x+wid,y+hei), (0,255,0), 3)

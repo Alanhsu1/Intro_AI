@@ -1,4 +1,3 @@
-
 class WeakClassifier:
     def __init__(self, feature, threshold=0, polarity=1):
         """

@@ -36,8 +36,8 @@ class Adaboost:
             else:
                 negNum += 1
         print("Building features")
-
-        features = self.buildFeatures(iis[0].shape)
+        
+        features = self.buildFeatures((19, 19))
         print("Applying features to dataset")
         featureVals = self.applyFeatures(features, iis)
         print("Selecting best features")
@@ -96,15 +96,18 @@ class Adaboost:
 
                         bottom = RectangleRegion(i, j+h, w, h)
                         if j + 2 * h < height: #Vertically Adjacent
+                            #print('2')
                             features.append(HaarFeature([immediate], [bottom]))
                         
                         right_2 = RectangleRegion(i+2*w, j, w, h)
                         #3 rectangle features
                         if i + 3 * w < width: #Horizontally Adjacent
+                            #print('3')
                             features.append(HaarFeature([right], [right_2, immediate]))
 
                         bottom_2 = RectangleRegion(i, j+2*h, w, h)
                         if j + 3 * h < height: #Vertically Adjacent
+                            #print('4')
                             features.append(HaarFeature([bottom], [bottom_2, immediate]))
 
                         #4 rectangle features
@@ -113,7 +116,9 @@ class Adaboost:
                             features.append(HaarFeature([right, bottom], [immediate, bottom_right]))
 
                         j += 1
+                    #print("done")
                     i += 1
+        
         return np.array(features)
     
     def applyFeatures(self, features, iis):
