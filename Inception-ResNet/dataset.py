@@ -12,8 +12,8 @@ def loadImages(dataPath):
     transform = trns.Compose([trns.Resize((224, 224)), 
                               trns.ToTensor(), 
                               trns.Normalize(
-                                mean=[0.485, 0.456, 0.406], 
-		                        std=[0.229, 0.224, 0.225])])
+                                mean=[0.485, 0.456,  0.406], 
+                                std =[0.229, 0.224,  0.225])])
 
     img_file = [join(img_path, f) for f in listdir(img_path) if isfile(join(img_path, f))]
     # print(img_file)
@@ -27,11 +27,12 @@ def loadImages(dataPath):
         img = Image.open(file).convert("RGB")
         img_tensor = transform(img)
         img_tensor = img_tensor.unsqueeze(0)
-        
+        # print(img_tensor.size())
         dataset.append(img_tensor)
 
     return dataset
 
 if __name__ == "__main__":
     # loadImages
+    # loadImages('C:/Users/yifan/Desktop/Intro_AI/CT')
     pass
