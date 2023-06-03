@@ -23,12 +23,15 @@ def loadImages(dataPath):
             img_tmp = tf.cast(img_tmp, tf.int64)
             # img_tmp shape is (24,24,1)
             # type <class 'tensorflow.python.framework.ops.EagerTensor'>
+            
+            img_final = tf.squeeze(img_tmp)
+            # img_final shape is (24,24)
 
             if pt=='COVID': # label is 1 when it is a COVID
-                dataset.append((img_tmp, 1))
+                dataset.append((img_final, 1))
             else:
-                dataset.append((img_tmp, 0))
+                dataset.append((img_final, 0))
     return dataset
     # dataset is a list of tuples
 
-# dt = loadImages('CT')
+dt = loadImages('CT')
