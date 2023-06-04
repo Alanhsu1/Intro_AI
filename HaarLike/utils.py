@@ -22,10 +22,13 @@ def evaluate(clf, dataset):
                 false_negatives += 1
             else:
                 true_negatives += 1
+    precision = true_positives/(true_positives+false_positives)
+    recall = true_positives/(true_positives+false_negatives)
     
     correct = true_positives + true_negatives
     print("False Positive Rate: %d/%d (%f)" % (false_positives, all_negatives, false_positives/all_negatives))
     print("False Negative Rate: %d/%d (%f)" % (false_negatives, all_positives, false_negatives/all_positives))
+    print("F1 score:", (2*precision*recall)/(precision+recall))
     print("Accuracy: %d/%d (%f)" % (correct, len(dataset), correct/len(dataset)))
     return correct/len(dataset)
 
