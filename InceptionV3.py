@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import time
 import matplotlib.pyplot as plt
+import sklearn
 
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
@@ -165,11 +166,16 @@ if __name__ == '__main__':
             label = label.long()
             test_output = C(x)
             test_loss = criterion(test_output, label)
-            
+
             _, predicted = torch.max(test_output.data, 1)
             total_test += label.size(0)
             correct_test += (predicted == label).sum()
 
+            y_pred = []
+            y_label = []
+            y_label.append(label)
+            y_pred.append(predicted)
+    print('Testing F1 score: ', sklearn.metrics.f1_score(y_label, y_pred))
     print('Testing acc: %.3f' % (correct_test / total_test))
 
 plt.figure()
