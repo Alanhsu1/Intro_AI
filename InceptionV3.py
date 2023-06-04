@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import time
 import matplotlib.pyplot as plt
-import sklearn
+from sklearn.metrics import f1_score
 
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
@@ -175,7 +175,7 @@ if __name__ == '__main__':
             y_label = []
             y_label.append(label)
             y_pred.append(predicted)
-    print('Testing F1 score: ', sklearn.metrics.f1_score(y_label, y_pred))
+    print('Testing F1 score: ', f1_score(y_label, y_pred))
     print('Testing acc: %.3f' % (correct_test / total_test))
 
 plt.figure()
