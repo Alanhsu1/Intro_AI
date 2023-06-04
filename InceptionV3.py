@@ -12,6 +12,7 @@ from torchvision.datasets import ImageFolder
 from torch import optim
 from torchsummary import summary
 
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class CovidDataset(Dataset):
@@ -49,16 +50,14 @@ test_transformer = transforms.Compose([
 ])
 
 
-
 def split_Train_Val_Data(data_path):
     dataset_train = ImageFolder(data_path + '/train')
     dataset_test = ImageFolder(data_path + '/test')
-    # print('dataset: ', dataset)
-    # print('len of dataset: ', len(dataset))
-
-    # dataset.classes = ['COVID', 'non-COVID']
+    
+    
     character_train = [[] for c in range(len(dataset_train.classes))]
     character_test = [[] for c in range(len(dataset_test.classes))]
+
 
     for img, label in dataset_train.samples:
         character_train[label].append(img)
@@ -96,7 +95,7 @@ epochs = 10
 dataset = './test'
 
 train_dataloader, test_dataloader = split_Train_Val_Data(dataset)
-C = models.inception_v3(pretrained=True).to(device)
+C = models.inception_v3(pretrained=False).to(device)
 optimizer_C = optim.SGD(C.parameters(), lr=learning_rate)
 summary(C, (3, 299, 299))
 criterion = nn.CrossEntropyLoss()
@@ -107,6 +106,8 @@ best_accuracy, best_auc = 0.0, 0.0
 
 # main
 if __name__ == '__main__':
+    best = C
+    best_acc = 0.0
     for epoch in range(epochs):
         # count time
         start_time = time.time()
@@ -118,19 +119,18 @@ if __name__ == '__main__':
         C.train()
         print('epoch: ' + str(epoch + 1) + ' / ' + str(epochs))
 
-        
         # Training Stage
         for i, (x, label) in enumerate(train_dataloader):
 
             x, label = x.to(device), label.to(device)
-            optimizer_C.zero_grad()  # 清空梯度
-            train_output = C(x)  # 將訓練資料輸入至模型進行訓練 (Forward propagation)
+            optimizer_C.zero_grad()
+            train_output = C(x)
             label = label.long()
             train_output = train_output.logits
 
-            train_loss = criterion(train_output, label)  # 計算 loss
-            train_loss.backward()  # 將 loss 反向傳播
-            optimizer_C.step()  # 更新權重
+            train_loss = criterion(train_output, label)
+            train_loss.backward()
+            optimizer_C.step()
 
             # 計算訓練資料的準確度 (correct_train / total_train)
             _, predicted = torch.max(train_output.data, 1)  # 取出預測的 maximum
@@ -139,48 +139,51 @@ if __name__ == '__main__':
             train_loss_C += train_loss.item()
             iteration += 1
 
+        if best_acc < correct_train / total_train:
+            best = C
+            best_acc = correct_train / total_train
+
         print('Training epoch: %d / loss_C: %.3f | acc: %.3f' % \
               (epoch + 1, train_loss_C / iteration, correct_train / total_train))
 
         # --------------------------
         # Testing Stage
         # --------------------------
-        C.eval()
-        for i, (x, label) in enumerate(test_dataloader):
-            with torch.no_grad():
-                x, label = x.to(device), label.to(device)
-                label = label.long()
-                test_output = C(x)
-                test_loss = criterion(test_output, label)
-                
-                _, predicted = torch.max(test_output.data, 1)
-                total_test += label.size(0)
-                correct_test += (predicted == label).sum()
-
-
-        print('Testing acc: %.3f' % (correct_test / total_test))
 
         train_accuracy.append(100 * (correct_train / total_train).cpu())  # training accuracy
-        test_accuracy.append(100 * (correct_test / total_test).cpu())  # testing accuracy
+        # test_accuracy.append(100 * (correct_test / total_test).cpu())  # testing accuracy
         loss_epoch_C.append((train_loss_C / iteration))  # loss
 
         end_time = time.time()
         print('Cost %.3f(secs)' % (end_time - start_time))
 
+    C = best
+    C.eval()
+    for i, (x, label) in enumerate(test_dataloader):
+        with torch.no_grad():
+            x, label = x.to(device), label.to(device)
+            label = label.long()
+            test_output = C(x)
+            test_loss = criterion(test_output, label)
+            
+            _, predicted = torch.max(test_output.data, 1)
+            total_test += label.size(0)
+            correct_test += (predicted == label).sum()
+
+    print('Testing acc: %.3f' % (correct_test / total_test))
 
 plt.figure()
 plt.plot(list(range(epochs)), loss_epoch_C) # plot your loss
 plt.title('Training Loss')
 plt.ylabel('loss'), plt.xlabel('epoch')
 plt.legend(['loss_C'], loc = 'upper left')
-plt.savefig('./Inception-ResNet/loss.png')
+plt.savefig('loss.png')
 plt.show()
 
 plt.figure()
 plt.plot(list(range(epochs)), train_accuracy)    # plot your training accuracy
-plt.plot(list(range(epochs)), test_accuracy)     # plot your testing accuracy
 plt.title('Training acc')
 plt.ylabel('acc (%)'), plt.xlabel('epoch')
-plt.legend(['training acc', 'testing acc'], loc = 'upper left')
-plt.savefig('./Inception-ResNet/acc.png')
+plt.legend(['training acc'], loc = 'upper left')
+plt.savefig('acc.png')
 plt.show()
