@@ -21,7 +21,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 
 
-# 實作一個可以讀取 stanford dog (mini) 的 Pytorch dataset
 class CovidDataset(Dataset):
 
     def __init__(self, filenames, labels, transform):
