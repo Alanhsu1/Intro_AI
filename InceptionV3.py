@@ -92,7 +92,7 @@ def split_Train_Val_Data(data_path):
 batch_size = 32
 learning_rate = 1e-3
 epochs = 10
-dataset = './test'
+dataset = './CT'
 
 train_dataloader, test_dataloader = split_Train_Val_Data(dataset)
 C = models.inception_v3(pretrained=True).to(device)
@@ -173,8 +173,8 @@ if __name__ == '__main__':
             total_test += label.size(0)
             correct_test += (predicted == label).sum()
 
-            pred = np.array(predicted)
-            lbl = np.array(label)
+            pred = np.array(predicted.cpu())
+            lbl = np.array(label.cpu())
             # print(pred)
             # print(lbl)
             for idx in range(len(pred)):
@@ -184,6 +184,7 @@ if __name__ == '__main__':
                 else:
                     if lbl[idx]==1: true_positives += 1
                     else: false_positives += 1
+
     # print('fp',false_positives)
     # print('tp',true_positives)
     precision = true_positives/(true_positives+false_positives)
