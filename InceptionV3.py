@@ -5,7 +5,6 @@ import torch
 import torch.nn as nn
 import time
 import matplotlib.pyplot as plt
-from sklearn.metrics import f1_score
 
 from torch.utils.data import Dataset, DataLoader
 from PIL import Image
@@ -160,6 +159,9 @@ if __name__ == '__main__':
 
     C = best
     C.eval()
+    all_negatives, all_positives = 0, 0
+    true_negatives, false_negatives = 0, 0
+    true_positives, false_positives = 0, 0
     for i, (x, label) in enumerate(test_dataloader):
         with torch.no_grad():
             x, label = x.to(device), label.to(device)
@@ -171,11 +173,18 @@ if __name__ == '__main__':
             total_test += label.size(0)
             correct_test += (predicted == label).sum()
 
-            y_pred = []
-            y_label = []
-            y_label.append(label)
-            y_pred.append(predicted)
-    print('Testing F1 score: ', f1_score(y_label, y_pred))
+            pred = np.array(predicted)
+            lbl = np.array(label)
+            for idx in range(len(pred)):
+                if pred[idx]==0:
+                    if lbl==0: true_negatives += 1
+                    else: false_negatives += 1
+                else:
+                    if lbl==1: true_positives += 1
+                    else: false_positives += 1
+    precision = true_positives/(true_positives+false_positives)
+    recall = true_positives/(true_positives+false_negatives)
+    print('Testing F1 score: ', (2*precision*recall)/(precision+recall))
     print('Testing acc: %.3f' % (correct_test / total_test))
 
 plt.figure()
