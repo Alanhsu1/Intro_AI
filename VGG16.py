@@ -13,6 +13,7 @@ from torchvision.datasets import ImageFolder
 from torchvision import models
 from torch import optim
 from torchsummary import summary
+from sklearn.metrics import f1_score
 
 import time
 
@@ -20,7 +21,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 
 
-# 實作一個可以讀取 stanford dog (mini) 的 Pytorch dataset
 class CovidDataset(Dataset):
 
     def __init__(self, filenames, labels, transform):
@@ -40,7 +40,6 @@ class CovidDataset(Dataset):
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
-# Transformer
 train_transformer = transforms.Compose([
     transforms.Resize(256),
     transforms.RandomResizedCrop(224),
@@ -58,52 +57,22 @@ test_transformer = transforms.Compose([
 
 
 def split_Train_Val_Data(data_dir):
-    dataset = ImageFolder(data_dir)
-    print("dataset: ", dataset)
-    print("len of dataset: ",len(dataset))
-    character = [[] for i in range(len(dataset.classes))]
-    print(type(character))
-    print(character)
-    # print(character)
+    train_dir = os.path.join(data_dir, 'train')  # 訓練資料夾路徑
+    test_dir = os.path.join(data_dir, 'test')  # 測試資料夾路徑
 
-    # 將每一類的檔名依序存入相對應的 list
-    for x, y in dataset.samples:
-        character[y].append(x)
+    train_dataset = ImageFolder(train_dir, transform=train_transformer)  # 創建訓練資料集，並指定transform
+    test_dataset = ImageFolder(test_dir, transform=test_transformer)  # 創建測試資料集，並指定transform
 
-    train_inputs, test_inputs = [], []
-    train_labels, test_labels = [], []
-    print(enumerate(character))
-    for i, data in enumerate(character):  # 讀取每個類別中所有的檔名 (i: label, data: filename)
-        np.random.seed(42)
-        np.random.shuffle(data)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-        # -------------------------------------------
-        # 將每一類都以 8:2 的比例分成訓練資料和測試資料
-        # -------------------------------------------
-        num_sample_train = int(len(data) * 0.9)
-        num_sample_test = len(data) - num_sample_train
-        print(str(i) + ': ' + str(len(data)) + ' | ' + str(num_sample_train) + ' | ' + str(num_sample_test))
-
-        for x in data[:num_sample_train]:  # 前 80% 資料存進 training list
-            train_inputs.append(x)
-            train_labels.append(i)
-
-        for x in data[num_sample_train:]:  # 後 20% 資料存進 testing list
-            test_inputs.append(x)
-            test_labels.append(i)
-
-    train_dataloader = DataLoader(CovidDataset(train_inputs, train_labels, train_transformer),
-                                  batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(CovidDataset(test_inputs, test_labels, test_transformer),
-                                 batch_size=batch_size, shuffle=False)
     return train_dataloader, test_dataloader
-
 
 
 # 參數設定
 batch_size = 32                                  # Batch Size
 lr = 1e-3                                        # Learning Rate
-epochs = 50                                      # epoch 次數
+epochs = 10                                      # epoch 次數
 dataset = "dataset"
 
 
@@ -128,7 +97,8 @@ if __name__ == '__main__':
 
         C.train()  # 設定 train 或 eval
         print('epoch: ' + str(epoch + 1) + ' / ' + str(epochs))
-
+        true_labels = []
+        pred_labels = []
         # ---------------------------
         # Training Stage
         # ---------------------------
@@ -150,8 +120,12 @@ if __name__ == '__main__':
             train_loss_C += train_loss.item()
             iter += 1
 
-        print('Training epoch: %d / loss_C: %.3f | acc: %.3f' % \
-              (epoch + 1, train_loss_C / iter, correct_train / total_train))
+            true_labels.extend(label.cpu().numpy())  # 真實標籤
+            pred_labels.extend(predicted.cpu().numpy())  # 預測標籤
+
+        f1 = f1_score(true_labels, pred_labels, average='macro')
+        print('Training epoch: %d / loss_C: %.3f | acc: %.3f | F1 score: %.3f' %
+              (epoch + 1, train_loss_C / iter, correct_train / total_train, f1))
 
         # --------------------------
         # Testing Stage
