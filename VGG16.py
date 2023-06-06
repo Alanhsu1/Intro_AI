@@ -12,7 +12,6 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets import ImageFolder
 from torchvision import models
 from torch import optim
-from sklearn.metrics import f1_score
 
 import time
 
