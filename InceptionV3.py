@@ -10,7 +10,6 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 from torchvision.datasets import ImageFolder
 from torch import optim
-from torchsummary import summary
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
