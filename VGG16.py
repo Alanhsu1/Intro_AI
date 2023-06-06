@@ -187,8 +187,6 @@ if __name__ == '__main__':
 
     print('Testing acc: %.3f' % (correct_test / total_test))
 
-        
-
 
 fig_dir = './fig/'
 if not os.path.isdir(fig_dir):
@@ -204,9 +202,8 @@ plt.show()
 
 plt.figure()
 plt.plot(list(range(epochs)), train_acc)    # plot your training accuracy
-plt.plot(list(range(epochs)), test_acc)     # plot your testing accuracy
 plt.title('Training acc')
 plt.ylabel('acc (%)'), plt.xlabel('epoch')
-plt.legend(['training acc', 'testing acc'], loc = 'upper left')
+plt.legend(['training acc'], loc = 'upper left')
 plt.savefig(os.path.join(fig_dir, 'acc.png'))
 plt.show()
