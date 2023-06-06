@@ -16,34 +16,31 @@ from torchsummary import summary
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class CovidDataset(Dataset):
-
     def __init__(self, filenames, labels, transform):
         self.filenames = filenames  # all file
         self.labels = labels  # image tag
         self.transform = transform  # transform method
 
     def __len__(self):
-        return len(self.filenames)  # return DataSet 長度
+        return len(self.filenames)
 
     def __getitem__(self, idx):  # idx: Inedx of filenames
         image = Image.open(self.filenames[idx]).convert('RGB')
         image = self.transform(image)  # Transform image
         label = np.array(self.labels[idx])
-        return image, label  # return 模型訓練所需的資訊
+        return image, label
 
 
 # Transformer
 train_transformer = transforms.Compose([
-    transforms.Resize(299),
-    transforms.CenterCrop(299),
+    transforms.Resize([299, 299]),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], 
                          std=[0.229, 0.224, 0.225]),
 ])
 
 test_transformer = transforms.Compose([
-    transforms.Resize(299),
-    transforms.CenterCrop(299),
+    transforms.Resize([299, 299]),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406],
                          std=[0.229, 0.224, 0.225]),
@@ -53,33 +50,19 @@ test_transformer = transforms.Compose([
 def split_Train_Val_Data(data_path):
     dataset_train = ImageFolder(data_path + '/train')
     dataset_test = ImageFolder(data_path + '/test')
-    
-    
-    character_train = [[] for c in range(len(dataset_train.classes))]
-    character_test = [[] for c in range(len(dataset_test.classes))]
-
-
-    for img, label in dataset_train.samples:
-        character_train[label].append(img)
-
-    for img, label in dataset_test.samples:
-        character_test[label].append(img)
-    # print(character)
 
     train_inputs, test_inputs = [], []
     train_labels, test_labels = [], []
 
-    for label, data in enumerate(character_train):
-        for x in data:
-            train_inputs.append(x)
-            train_labels.append(label)
+    for x, label in dataset_train.samples:
+        train_inputs.append(x)
+        train_labels.append(label)
 
-    for label, data in enumerate(character_test):
-        for x in data:
-            test_inputs.append(x)
-            test_labels.append(label)
-    
-    print(len(train_inputs), len(test_inputs))
+    for x, label in dataset_test.samples:
+        test_inputs.append(x)
+        test_labels.append(label)
+
+    # print(len(train_inputs), len(test_inputs))
 
     train_dataloader = DataLoader(CovidDataset(train_inputs, train_labels, train_transformer),
                                   batch_size=batch_size, shuffle=True)
@@ -97,7 +80,6 @@ dataset = './CT'
 train_dataloader, test_dataloader = split_Train_Val_Data(dataset)
 C = models.inception_v3(pretrained=True).to(device)
 optimizer_C = optim.SGD(C.parameters(), lr=learning_rate)
-summary(C, (3, 299, 299))
 criterion = nn.CrossEntropyLoss()
 
 loss_epoch_C = []
@@ -159,6 +141,7 @@ if __name__ == '__main__':
 
     C = best
     C.eval()
+
     all_negatives, all_positives = 0, 0
     true_negatives, false_negatives = 0, 0
     true_positives, false_positives = 0, 0
@@ -192,6 +175,8 @@ if __name__ == '__main__':
 
     print('Testing F1 score: ', (2*precision*recall)/(precision+recall))
     print('Testing acc: %.3f' % (correct_test / total_test))
+
+    torch.save(C, 'model.pt')
 
 plt.figure()
 plt.plot(list(range(epochs)), loss_epoch_C) # plot your loss
