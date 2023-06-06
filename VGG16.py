@@ -55,16 +55,28 @@ test_transformer = transforms.Compose([
 ])
 
 
-def split_Train_Val_Data(data_dir):
-    train_dir = os.path.join(data_dir, 'train')  # 訓練資料夾路徑
-    test_dir = os.path.join(data_dir, 'test')  # 測試資料夾路徑
+def split_Train_Val_Data(data_path):
+    dataset_train = ImageFolder(data_path + '/train')
+    dataset_test = ImageFolder(data_path + '/test')
 
-    train_dataset = ImageFolder(train_dir, transform=train_transformer)  # 創建訓練資料集，並指定transform
-    test_dataset = ImageFolder(test_dir, transform=test_transformer)  # 創建測試資料集，並指定transform
+    train_inputs, test_inputs = [], []
+    train_labels, test_labels = [], []
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    for x, label in dataset_train.samples:
+        train_inputs.append(x)
+        train_labels.append(label)
 
+    for x, label in dataset_test.samples:
+        test_inputs.append(x)
+        test_labels.append(label)
+
+    # print(len(train_inputs), len(test_inputs))
+
+    train_dataloader = DataLoader(CovidDataset(train_inputs, train_labels, train_transformer),
+                                  batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(CovidDataset(test_inputs, test_labels, test_transformer),
+                                 batch_size=batch_size, shuffle=False)
+    
     return train_dataloader, test_dataloader
 
 
