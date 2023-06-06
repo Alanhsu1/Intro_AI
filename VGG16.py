@@ -82,7 +82,7 @@ def split_Train_Val_Data(data_path):
 batch_size = 32                                  # Batch Size
 lr = 1e-3                                        # Learning Rate
 epochs = 10                                      # epoch 次數
-dataset = "dataset"
+dataset = "./CT"
 
 
 train_dataloader, test_dataloader = split_Train_Val_Data(dataset)
@@ -97,6 +97,9 @@ train_acc, test_acc = [], []
 best_acc, best_auc = 0.0, 0.0
 
 if __name__ == '__main__':
+    best = C
+    best_acc = 0.0
+
     for epoch in range(epochs):
         start_time = time.time()
         iter = 0
@@ -128,57 +131,63 @@ if __name__ == '__main__':
             train_loss_C += train_loss.item()
             iter += 1
 
+        if best_acc < correct_train / total_train:
+            best = C
+            best_acc = correct_train / total_train
+
         print('Training epoch: %d / loss_C: %.3f | acc: %.3f' % (epoch + 1, train_loss_C / iter, correct_train / total_train))
-
-        # --------------------------
-        # Testing Stage
-        # --------------------------
-        C.eval()  # 設定 train 或 eval
-
-        true_negatives, false_negatives = 0, 0
-        true_positives, false_positives = 0, 0
-        for i, (x, label) in enumerate(test_dataloader):
-            with torch.no_grad():
-                x, label = x.to(device), label.to(device)
-                label = label.long()
-                test_output = C(x)
-                test_loss = criterion(test_output, label)
-
-                _, predicted = torch.max(test_output.data, 1)
-                total_test += label.size(0)
-                correct_test += (predicted == label).sum()
-
-                pred = np.array(predicted.cpu())
-                lbl = np.array(label.cpu())
-                # print(pred)
-                # print(lbl)
-                for idx in range(len(pred)):
-                    if pred[idx] == 0:
-                        if lbl[idx] == 0:
-                            true_negatives += 1
-                        else:
-                            false_negatives += 1
-                    else:
-                        if lbl[idx] == 1:
-                            true_positives += 1
-                        else:
-                            false_positives += 1
-
-        # print('fp',false_positives)
-        # print('tp',true_positives)
-        precision = true_positives / (true_positives + false_positives)
-        recall = true_positives / (true_positives + false_negatives)
-
-        print('Testing F1 score: ', (2 * precision * recall) / (precision + recall))
-
-        print('Testing acc: %.3f' % (correct_test / total_test))
-
         train_acc.append(100 * (correct_train / total_train).cpu())  # training accuracy
-        test_acc.append(100 * (correct_test / total_test).cpu())  # testing accuracy
+        # test_acc.append(100 * (correct_test / total_test).cpu())  # testing accuracy
         loss_epoch_C.append((train_loss_C / iter))  # loss
 
         end_time = time.time()
         print('Cost %.3f(secs)' % (end_time - start_time))
+
+    # --------------------------
+    # Testing Stage
+    # --------------------------
+    C=best
+    C.eval()  # 設定 train 或 eval
+
+    true_negatives, false_negatives = 0, 0
+    true_positives, false_positives = 0, 0
+    for i, (x, label) in enumerate(test_dataloader):
+        with torch.no_grad():
+            x, label = x.to(device), label.to(device)
+            label = label.long()
+            test_output = C(x)
+            test_loss = criterion(test_output, label)
+
+            _, predicted = torch.max(test_output.data, 1)
+            total_test += label.size(0)
+            correct_test += (predicted == label).sum()
+
+            pred = np.array(predicted.cpu())
+            lbl = np.array(label.cpu())
+            # print(pred)
+            # print(lbl)
+            for idx in range(len(pred)):
+                if pred[idx] == 0:
+                    if lbl[idx] == 0:
+                        true_negatives += 1
+                    else:
+                        false_negatives += 1
+                else:
+                    if lbl[idx] == 1:
+                        true_positives += 1
+                    else:
+                        false_positives += 1
+
+    # print('fp',false_positives)
+    # print('tp',true_positives)
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+
+    print('Testing F1 score: ', (2 * precision * recall) / (precision + recall))
+
+    print('Testing acc: %.3f' % (correct_test / total_test))
+
+        
 
 
 fig_dir = './fig/'
