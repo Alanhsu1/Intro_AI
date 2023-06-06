@@ -16,3 +16,4 @@ Also, we test Haar-like feature algorithm which used for recognizing human face 
   * Dataset: https://data.mendeley.com/datasets/8h65ywd2jr/3?fbclid=IwAR3N9RbCdETV0E35TcUIpPFm1umGn-c2ogijjQuqHXr5mjn6ReRmifx-_3E
   * our dataset files: https://drive.google.com/drive/folders/1gj00kI4ruQhg1ztfOhPk5BIyiD3XWEJC?fbclid=IwAR1b-LWd74CN5WkMc0QAmThLTJxq8_moz28jvoqVIPCAjQ8sc6oVhAH117c
   * Learning Deep Learning with Keras : https://p.migdal.pl/2017/04/30/teaching-deep-learning.html/
+  * haar like feature : https://www.cs.cmu.edu/~efros/courses/LBMV07/Papers/viola-cvpr-01.pdf
