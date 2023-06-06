@@ -42,70 +42,44 @@ class CovidDataset(Dataset):
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
 train_transformer = transforms.Compose([
-    transforms.Resize(256),
-    transforms.RandomResizedCrop(224),
+    transforms.Resize([299,299]),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     normalize
 ])
 
 test_transformer = transforms.Compose([
-    transforms.Resize(224),
-    transforms.CenterCrop(224),
+    transforms.Resize([299,299]),
     transforms.ToTensor(),
     normalize
 ])
 
 
-def split_Train_Val_Data(data_path):
-    dataset_train = ImageFolder(data_path + '/train')
-    dataset_test = ImageFolder(data_path + '/test')
-    
-    
-    character_train = [[] for c in range(len(dataset_train.classes))]
-    character_test = [[] for c in range(len(dataset_test.classes))]
+def split_Train_Val_Data(data_dir):
+    train_dir = os.path.join(data_dir, 'train')  # 訓練資料夾路徑
+    test_dir = os.path.join(data_dir, 'test')  # 測試資料夾路徑
 
+    train_dataset = ImageFolder(train_dir, transform=train_transformer)  # 創建訓練資料集，並指定transform
+    test_dataset = ImageFolder(test_dir, transform=test_transformer)  # 創建測試資料集，並指定transform
 
-    for img, label in dataset_train.samples:
-        character_train[label].append(img)
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-    for img, label in dataset_test.samples:
-        character_test[label].append(img)
-    # print(character)
-
-    train_inputs, test_inputs = [], []
-    train_labels, test_labels = [], []
-
-    for label, data in enumerate(character_train):
-        for x in data:
-            train_inputs.append(x)
-            train_labels.append(label)
-
-    for label, data in enumerate(character_test):
-        for x in data:
-            test_inputs.append(x)
-            test_labels.append(label)
-    
-    print(len(train_inputs), len(test_inputs))
-
-    train_dataloader = DataLoader(CovidDataset(train_inputs, train_labels, train_transformer),
-                                  batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(CovidDataset(test_inputs, test_labels, test_transformer),
-                                 batch_size=batch_size, shuffle=False)
-    
     return train_dataloader, test_dataloader
-        
 
-batch_size = 32
-learning_rate = 1e-3
-epochs = 10
-dataset = './CT'
+
+# 參數設定
+batch_size = 32                                  # Batch Size
+lr = 1e-3                                        # Learning Rate
+epochs = 10                                      # epoch 次數
+dataset = "dataset"
 
 
 train_dataloader, test_dataloader = split_Train_Val_Data(dataset)
-C = models.vgg16(pretrained=False).to(device)     # 使用內建的 model
-optimizer_C = optim.SGD(C.parameters(), lr = learning_rate) # 選擇你想用的 optimizer
-summary(C, (3, 244, 244))                        # 利用 torchsummary 的 summary package 印出模型資訊，input size: (3 * 224 * 224)
+C = models.vgg16(pretrained=True).to(device)     # 使用內建的 model
+optimizer_C = optim.SGD(C.parameters(), lr = lr) # 選擇你想用的 optimizer
+summary(C, (3, 224, 224))                        # 利用 torchsummary 的 summary package 印出模型資訊，input size: (3 * 224 * 224)
+
 # Loss function
 criterion = nn.CrossEntropyLoss()                # 選擇想用的 loss function
 
@@ -114,8 +88,6 @@ train_acc, test_acc = [], []
 best_acc, best_auc = 0.0, 0.0
 
 if __name__ == '__main__':
-    best = C
-    best_acc = 0.0
     for epoch in range(epochs):
         start_time = time.time()
         iter = 0
@@ -147,64 +119,58 @@ if __name__ == '__main__':
             train_loss_C += train_loss.item()
             iter += 1
 
-        if best_acc < correct_train / total_train:
-            best = C
-            best_acc = correct_train / total_train
-
         print('Training epoch: %d / loss_C: %.3f | acc: %.3f' % (epoch + 1, train_loss_C / iter, correct_train / total_train))
 
-        
+        # --------------------------
+        # Testing Stage
+        # --------------------------
+        C.eval()  # 設定 train 或 eval
+
+        true_negatives, false_negatives = 0, 0
+        true_positives, false_positives = 0, 0
+        for i, (x, label) in enumerate(test_dataloader):
+            with torch.no_grad():
+                x, label = x.to(device), label.to(device)
+                label = label.long()
+                test_output = C(x)
+                test_loss = criterion(test_output, label)
+
+                _, predicted = torch.max(test_output.data, 1)
+                total_test += label.size(0)
+                correct_test += (predicted == label).sum()
+
+                pred = np.array(predicted.cpu())
+                lbl = np.array(label.cpu())
+                # print(pred)
+                # print(lbl)
+                for idx in range(len(pred)):
+                    if pred[idx] == 0:
+                        if lbl[idx] == 0:
+                            true_negatives += 1
+                        else:
+                            false_negatives += 1
+                    else:
+                        if lbl[idx] == 1:
+                            true_positives += 1
+                        else:
+                            false_positives += 1
+
+        # print('fp',false_positives)
+        # print('tp',true_positives)
+        precision = true_positives / (true_positives + false_positives)
+        recall = true_positives / (true_positives + false_negatives)
+
+        print('Testing F1 score: ', (2 * precision * recall) / (precision + recall))
+
+        print('Testing acc: %.3f' % (correct_test / total_test))
 
         train_acc.append(100 * (correct_train / total_train).cpu())  # training accuracy
-        # test_acc.append(100 * (correct_test / total_test).cpu())  # testing accuracy
+        test_acc.append(100 * (correct_test / total_test).cpu())  # testing accuracy
         loss_epoch_C.append((train_loss_C / iter))  # loss
 
         end_time = time.time()
         print('Cost %.3f(secs)' % (end_time - start_time))
 
-    # --------------------------
-    # Testing Stage
-    # --------------------------
-    C = best
-    C.eval()  # 設定 train 或 eval
-
-    true_negatives, false_negatives = 0, 0
-    true_positives, false_positives = 0, 0
-    for i, (x, label) in enumerate(test_dataloader):
-        with torch.no_grad():
-            x, label = x.to(device), label.to(device)
-            label = label.long()
-            test_output = C(x)
-            test_loss = criterion(test_output, label)
-
-            _, predicted = torch.max(test_output.data, 1)
-            total_test += label.size(0)
-            correct_test += (predicted == label).sum()
-
-            pred = np.array(predicted.cpu())
-            lbl = np.array(label.cpu())
-            # print(pred)
-            # print(lbl)
-            for idx in range(len(pred)):
-                if pred[idx] == 0:
-                    if lbl[idx] == 0:
-                        true_negatives += 1
-                    else:
-                        false_negatives += 1
-                else:
-                    if lbl[idx] == 1:
-                        true_positives += 1
-                    else:
-                        false_positives += 1
-
-    # print('fp',false_positives)
-    # print('tp',true_positives)
-    precision = true_positives / (true_positives + false_positives)
-    recall = true_positives / (true_positives + false_negatives)
-
-    print('Testing F1 score: ', (2 * precision * recall) / (precision + recall))
-
-    print('Testing acc: %.3f' % (correct_test / total_test))
 
 fig_dir = './fig/'
 if not os.path.isdir(fig_dir):
@@ -220,9 +186,9 @@ plt.show()
 
 plt.figure()
 plt.plot(list(range(epochs)), train_acc)    # plot your training accuracy
-# plt.plot(list(range(epochs)), test_acc)     # plot your testing accuracy
+plt.plot(list(range(epochs)), test_acc)     # plot your testing accuracy
 plt.title('Training acc')
 plt.ylabel('acc (%)'), plt.xlabel('epoch')
-plt.legend(['training acc'], loc = 'upper left')
+plt.legend(['training acc', 'testing acc'], loc = 'upper left')
 plt.savefig(os.path.join(fig_dir, 'acc.png'))
 plt.show()
