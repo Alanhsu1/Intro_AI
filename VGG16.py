@@ -78,7 +78,6 @@ dataset = "dataset"
 train_dataloader, test_dataloader = split_Train_Val_Data(dataset)
 C = models.vgg16(pretrained=True).to(device)     # 使用內建的 model
 optimizer_C = optim.SGD(C.parameters(), lr = lr) # 選擇你想用的 optimizer
-summary(C, (3, 224, 224))                        # 利用 torchsummary 的 summary package 印出模型資訊，input size: (3 * 224 * 224)
 
 # Loss function
 criterion = nn.CrossEntropyLoss()                # 選擇想用的 loss function
