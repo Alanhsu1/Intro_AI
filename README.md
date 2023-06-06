@@ -9,6 +9,8 @@ Also, we test Haar-like feature algorithm which used for recognizing human face 
 
 ## Method
 ### Haar-like Feature
+### VGG16
+### Inception V3
 
 ## Reference:
   * Dataset: https://data.mendeley.com/datasets/8h65ywd2jr/3?fbclid=IwAR3N9RbCdETV0E35TcUIpPFm1umGn-c2ogijjQuqHXr5mjn6ReRmifx-_3E
